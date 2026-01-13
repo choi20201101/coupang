@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>쿠팡 판매자 모니터링 시스템</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1a237e, #3949ab);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    header h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .status-bar {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.running {
+      background-color: #4caf50;
+    }
+
+    .status-dot.stopped {
+      background-color: #f44336;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .card h2 {
+      color: #1a237e;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e8eaf6;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background-color: #3949ab;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: #1a237e;
+    }
+
+    .btn-success {
+      background-color: #4caf50;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background-color: #388e3c;
+    }
+
+    .btn-danger {
+      background-color: #f44336;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background-color: #d32f2f;
+    }
+
+    .btn-warning {
+      background-color: #ff9800;
+      color: white;
+    }
+
+    .btn-warning:hover {
+      background-color: #f57c00;
+    }
+
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+
+    .control-buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #555;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #3949ab;
+    }
+
+    .product-list {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .product-list th,
+    .product-list td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    .product-list th {
+      background-color: #f5f5f5;
+      font-weight: bold;
+      color: #555;
+    }
+
+    .product-list tr:hover {
+      background-color: #f9f9f9;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .badge-active {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .badge-inactive {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+
+    .badge-fraud {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+
+    .badge-normal {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+    }
+
+    .stat-item {
+      background: linear-gradient(135deg, #e8eaf6, #c5cae9);
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .stat-item .value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #1a237e;
+    }
+
+    .stat-item .label {
+      color: #555;
+      margin-top: 5px;
+    }
+
+    .result-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .result-item {
+      padding: 15px;
+      border-left: 4px solid #4caf50;
+      margin-bottom: 10px;
+      background-color: #f9f9f9;
+      border-radius: 0 5px 5px 0;
+    }
+
+    .result-item.fraud {
+      border-left-color: #f44336;
+      background-color: #ffebee;
+    }
+
+    .result-item .product-name {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .result-item .seller-info {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .result-item .time {
+      color: #999;
+      font-size: 12px;
+      margin-top: 5px;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      z-index: 1000;
+    }
+
+    .modal.active {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #999;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #e8eaf6;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+    }
+
+    .tab.active {
+      border-bottom-color: #3949ab;
+      color: #3949ab;
+      font-weight: bold;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .actions {
+      display: flex;
+      gap: 5px;
+    }
+
+    .url-cell {
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .alert {
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+    }
+
+    .alert-success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #c8e6c9;
+    }
+
+    .alert-error {
+      background-color: #ffebee;
+      color: #c62828;
+      border: 1px solid #ffcdd2;
+    }
+
+    .alert-info {
+      background-color: #e3f2fd;
+      color: #1565c0;
+      border: 1px solid #bbdefb;
+    }
+
+    @media (max-width: 768px) {
+      .product-list {
+        display: block;
+        overflow-x: auto;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>쿠팡 판매자 모니터링 시스템</h1>
+      <div class="status-bar">
+        <div class="status-item">
+          <div class="status-dot" id="statusDot"></div>
+          <span id="statusText">상태 확인 중...</span>
+        </div>
+        <div class="status-item">
+          <span>마지막 검사: <strong id="lastCheck">-</strong></span>
+        </div>
+        <div class="status-item">
+          <span>다음 검사: <strong id="nextCheck">-</strong></span>
+        </div>
+      </div>
+    </header>
+
+    <!-- 통계 카드 -->
+    <div class="card">
+      <h2>통계</h2>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="value" id="statTotal">0</div>
+          <div class="label">총 상품</div>
+        </div>
+        <div class="stat-item">
+          <div class="value" id="statActive">0</div>
+          <div class="label">활성 상품</div>
+        </div>
+        <div class="stat-item">
+          <div class="value" id="statChecks">0</div>
+          <div class="label">총 검사</div>
+        </div>
+        <div class="stat-item">
+          <div class="value" id="statFraud">0</div>
+          <div class="label">이상 감지</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 제어 버튼 -->
+    <div class="card">
+      <h2>모니터링 제어</h2>
+      <div class="control-buttons">
+        <button class="btn btn-success" id="btnStart" onclick="startMonitoring()">
+          모니터링 시작
+        </button>
+        <button class="btn btn-danger" id="btnStop" onclick="stopMonitoring()">
+          모니터링 중지
+        </button>
+        <button class="btn btn-warning" id="btnRunNow" onclick="runNow()">
+          즉시 검사
+        </button>
+        <button class="btn btn-primary" onclick="openAddProductModal()">
+          상품 추가
+        </button>
+        <button class="btn btn-primary" onclick="openSettingsModal()">
+          설정
+        </button>
+        <button class="btn btn-primary" onclick="testSlack()">
+          슬랙 테스트
+        </button>
+      </div>
+      <div id="alertContainer"></div>
+    </div>
+
+    <!-- 탭 -->
+    <div class="card">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('products')">상품 목록</div>
+        <div class="tab" onclick="switchTab('results')">검사 결과</div>
+        <div class="tab" onclick="switchTab('alerts')">알림 로그</div>
+      </div>
+
+      <!-- 상품 목록 탭 -->
+      <div class="tab-content active" id="tabProducts">
+        <table class="product-list">
+          <thead>
+            <tr>
+              <th>상품명</th>
+              <th>예상 판매자</th>
+              <th>URL</th>
+              <th>상태</th>
+              <th>작업</th>
+            </tr>
+          </thead>
+          <tbody id="productTableBody">
+            <tr>
+              <td colspan="5" style="text-align: center;">로딩 중...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 검사 결과 탭 -->
+      <div class="tab-content" id="tabResults">
+        <div class="result-list" id="resultList">
+          <div style="text-align: center; padding: 20px;">로딩 중...</div>
+        </div>
+      </div>
+
+      <!-- 알림 로그 탭 -->
+      <div class="tab-content" id="tabAlerts">
+        <div class="result-list" id="alertList">
+          <div style="text-align: center; padding: 20px;">로딩 중...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 상품 추가 모달 -->
+  <div class="modal" id="addProductModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>상품 추가</h3>
+        <button class="modal-close" onclick="closeModal('addProductModal')">&times;</button>
+      </div>
+      <form onsubmit="addProduct(event)">
+        <div class="form-group">
+          <label for="productUrl">쿠팡 상품 URL *</label>
+          <input type="url" id="productUrl" placeholder="https://www.coupang.com/vp/products/..." required>
+        </div>
+        <div class="form-group">
+          <label for="productName">상품명 *</label>
+          <input type="text" id="productName" placeholder="상품명을 입력하세요" required>
+        </div>
+        <div class="form-group">
+          <label for="expectedSeller">예상 판매자 (우리 판매자) *</label>
+          <input type="text" id="expectedSeller" placeholder="예: (주) 고지식바이오" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">추가</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 상품 수정 모달 -->
+  <div class="modal" id="editProductModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>상품 수정</h3>
+        <button class="modal-close" onclick="closeModal('editProductModal')">&times;</button>
+      </div>
+      <form onsubmit="updateProduct(event)">
+        <input type="hidden" id="editProductId">
+        <div class="form-group">
+          <label for="editProductUrl">쿠팡 상품 URL *</label>
+          <input type="url" id="editProductUrl" placeholder="https://www.coupang.com/vp/products/..." required>
+        </div>
+        <div class="form-group">
+          <label for="editProductName">상품명 *</label>
+          <input type="text" id="editProductName" placeholder="상품명을 입력하세요" required>
+        </div>
+        <div class="form-group">
+          <label for="editExpectedSeller">예상 판매자 (우리 판매자) *</label>
+          <input type="text" id="editExpectedSeller" placeholder="예: (주) 고지식바이오" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">저장</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 설정 모달 -->
+  <div class="modal" id="settingsModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>설정</h3>
+        <button class="modal-close" onclick="closeModal('settingsModal')">&times;</button>
+      </div>
+      <form onsubmit="saveSettings(event)">
+        <div class="form-group">
+          <label for="slackWebhookUrl">슬랙 웹훅 URL *</label>
+          <input type="url" id="slackWebhookUrl" placeholder="https://hooks.slack.com/services/...">
+        </div>
+        <div class="form-group">
+          <label for="slackChannel">슬랙 채널</label>
+          <input type="text" id="slackChannel" placeholder="#coupang-alerts">
+        </div>
+        <div class="form-group">
+          <label>검사 간격 (분)</label>
+          <div style="display: flex; gap: 10px;">
+            <input type="number" id="intervalMin" placeholder="최소" min="1" max="60" style="width: 50%;">
+            <input type="number" id="intervalMax" placeholder="최대" min="1" max="60" style="width: 50%;">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="intervalVariance">간격 오차 (초)</label>
+          <input type="number" id="intervalVariance" placeholder="30" min="0" max="120">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">저장</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/api';
+
+    // 초기화
+    document.addEventListener('DOMContentLoaded', () => {
+      loadStatus();
+      loadProducts();
+      loadResults();
+      loadAlerts();
+      loadStats();
+
+      // 5초마다 상태 업데이트
+      setInterval(loadStatus, 5000);
+      setInterval(loadStats, 10000);
+    });
+
+    // 상태 로드
+    async function loadStatus() {
+      try {
+        const response = await fetch(`${API_BASE}/monitoring/status`);
+        const data = await response.json();
+
+        if (data.success) {
+          const status = data.data;
+          const statusDot = document.getElementById('statusDot');
+          const statusText = document.getElementById('statusText');
+
+          if (status.isRunning) {
+            statusDot.className = 'status-dot running';
+            statusText.textContent = '모니터링 실행 중';
+            document.getElementById('btnStart').disabled = true;
+            document.getElementById('btnStop').disabled = false;
+          } else {
+            statusDot.className = 'status-dot stopped';
+            statusText.textContent = '모니터링 중지됨';
+            document.getElementById('btnStart').disabled = false;
+            document.getElementById('btnStop').disabled = true;
+          }
+
+          document.getElementById('lastCheck').textContent = status.lastCheckTime
+            ? new Date(status.lastCheckTime).toLocaleString('ko-KR')
+            : '-';
+          document.getElementById('nextCheck').textContent = status.nextCheckTime
+            ? new Date(status.nextCheckTime).toLocaleString('ko-KR')
+            : '-';
+        }
+      } catch (error) {
+        console.error('상태 로드 실패:', error);
+      }
+    }
+
+    // 통계 로드
+    async function loadStats() {
+      try {
+        const response = await fetch(`${API_BASE}/stats`);
+        const data = await response.json();
+
+        if (data.success) {
+          document.getElementById('statTotal').textContent = data.data.totalProducts;
+          document.getElementById('statActive').textContent = data.data.activeProducts;
+          document.getElementById('statChecks').textContent = data.data.totalChecks;
+          document.getElementById('statFraud').textContent = data.data.fraudulentFound;
+        }
+      } catch (error) {
+        console.error('통계 로드 실패:', error);
+      }
+    }
+
+    // 상품 목록 로드
+    async function loadProducts() {
+      try {
+        const response = await fetch(`${API_BASE}/products`);
+        const data = await response.json();
+
+        const tbody = document.getElementById('productTableBody');
+
+        if (data.success && data.data.length > 0) {
+          tbody.innerHTML = data.data.map(product => `
+            <tr>
+              <td>${escapeHtml(product.name)}</td>
+              <td>${escapeHtml(product.expectedSeller)}</td>
+              <td class="url-cell" title="${escapeHtml(product.url)}">
+                <a href="${escapeHtml(product.url)}" target="_blank">${escapeHtml(product.url)}</a>
+              </td>
+              <td>
+                <span class="badge ${product.isActive ? 'badge-active' : 'badge-inactive'}">
+                  ${product.isActive ? '활성' : '비활성'}
+                </span>
+              </td>
+              <td class="actions">
+                <button class="btn btn-sm btn-primary" onclick="testProduct('${product.id}')">테스트</button>
+                <button class="btn btn-sm btn-warning" onclick="openEditModal('${product.id}')">수정</button>
+                <button class="btn btn-sm btn-${product.isActive ? 'danger' : 'success'}" onclick="toggleProduct('${product.id}')">
+                  ${product.isActive ? '비활성화' : '활성화'}
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteProduct('${product.id}')">삭제</button>
+              </td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">등록된 상품이 없습니다.</td></tr>';
+        }
+      } catch (error) {
+        console.error('상품 로드 실패:', error);
+      }
+    }
+
+    // 검사 결과 로드
+    async function loadResults() {
+      try {
+        const response = await fetch(`${API_BASE}/results?limit=50`);
+        const data = await response.json();
+
+        const container = document.getElementById('resultList');
+
+        if (data.success && data.data.length > 0) {
+          container.innerHTML = data.data.map(result => `
+            <div class="result-item ${result.isFraudulent ? 'fraud' : ''}">
+              <div class="product-name">
+                ${result.isFraudulent ? '⚠️' : '✅'} ${escapeHtml(result.productName || '알 수 없음')}
+              </div>
+              <div class="seller-info">
+                예상: ${escapeHtml(result.expectedSeller)} | 실제: ${escapeHtml(result.actualSeller || '알 수 없음')}
+              </div>
+              <div class="time">${new Date(result.checkedAt).toLocaleString('ko-KR')}</div>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<div style="text-align: center; padding: 20px;">검사 결과가 없습니다.</div>';
+        }
+      } catch (error) {
+        console.error('결과 로드 실패:', error);
+      }
+    }
+
+    // 알림 로그 로드
+    async function loadAlerts() {
+      try {
+        const response = await fetch(`${API_BASE}/alerts?limit=50`);
+        const data = await response.json();
+
+        const container = document.getElementById('alertList');
+
+        if (data.success && data.data.length > 0) {
+          container.innerHTML = data.data.map(alert => `
+            <div class="result-item fraud">
+              <div class="product-name">
+                🚨 ${escapeHtml(alert.productName || '알 수 없음')}
+              </div>
+              <div class="seller-info">
+                예상: ${escapeHtml(alert.expectedSeller)} | 실제: ${escapeHtml(alert.actualSeller)}
+              </div>
+              <div class="time">${new Date(alert.alertedAt).toLocaleString('ko-KR')}</div>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<div style="text-align: center; padding: 20px;">알림 로그가 없습니다.</div>';
+        }
+      } catch (error) {
+        console.error('알림 로드 실패:', error);
+      }
+    }
+
+    // 모니터링 시작
+    async function startMonitoring() {
+      try {
+        showAlert('info', '모니터링을 시작하는 중...');
+        const response = await fetch(`${API_BASE}/monitoring/start`, { method: 'POST' });
+        const data = await response.json();
+
+        if (data.success) {
+          showAlert('success', '모니터링이 시작되었습니다.');
+          loadStatus();
+        } else {
+          showAlert('error', data.error || '모니터링 시작 실패');
+        }
+      } catch (error) {
+        showAlert('error', '모니터링 시작 실패: ' + error.message);
+      }
+    }
+
+    // 모니터링 중지
+    async function stopMonitoring() {
+      try {
+        showAlert('info', '모니터링을 중지하는 중...');
+        const response = await fetch(`${API_BASE}/monitoring/stop`, { method: 'POST' });
+        const data = await response.json();
+
+        if (data.success) {
+          showAlert('success', '모니터링이 중지되었습니다.');
+          loadStatus();
+        } else {
+          showAlert('error', data.error || '모니터링 중지 실패');
+        }
+      } catch (error) {
+        showAlert('error', '모니터링 중지 실패: ' + error.message);
+      }
+    }
+
+    // 즉시 검사
+    async function runNow() {
+      try {
+        showAlert('info', '즉시 검사를 실행하는 중...');
+        const response = await fetch(`${API_BASE}/monitoring/run-now`, { method: 'POST' });
+        const data = await response.json();
+
+        if (data.success) {
+          showAlert('success', '즉시 검사가 실행되었습니다.');
+          loadResults();
+          loadStats();
+        } else {
+          showAlert('error', data.error || '즉시 검사 실패');
+        }
+      } catch (error) {
+        showAlert('error', '즉시 검사 실패: ' + error.message);
+      }
+    }
+
+    // 상품 추가
+    async function addProduct(e) {
+      e.preventDefault();
+
+      const product = {
+        url: document.getElementById('productUrl').value,
+        name: document.getElementById('productName').value,
+        expectedSeller: document.getElementById('expectedSeller').value
+      };
+
+      try {
+        const response = await fetch(`${API_BASE}/products`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(product)
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          showAlert('success', '상품이 추가되었습니다.');
+          closeModal('addProductModal');
+          loadProducts();
+          loadStats();
+          e.target.reset();
+        } else {
+          showAlert('error', data.error || '상품 추가 실패');
+        }
+      } catch (error) {
+        showAlert('error', '상품 추가 실패: ' + error.message);
+      }
+    }
+
+    // 상품 수정 모달 열기
+    async function openEditModal(id) {
+      try {
+        const response = await fetch(`${API_BASE}/products`);
+        const data = await response.json();
+
+        if (data.success) {
+          const product = data.data.find(p => p.id === id);
+          if (product) {
+            document.getElementById('editProductId').value = product.id;
+            document.getElementById('editProductUrl').value = product.url;
+            document.getElementById('editProductName').value = product.name;
+            document.getElementById('editExpectedSeller').value = product.expectedSeller;
+            openModal('editProductModal');
+          }
+        }
+      } catch (error) {
+        showAlert('error', '상품 정보 로드 실패');
+      }
+    }
+
+    // 상품 수정
+    async function updateProduct(e) {
+      e.preventDefault();
+
+      const id = document.getElementById('editProductId').value;
+      const product = {
+        url: document.getElementById('editProductUrl').value,
+        name: document.getElementById('editProductName').value,
+        expectedSeller: document.getElementById('editExpectedSeller').value
+      };
+
+      try {
+        const response = await fetch(`${API_BASE}/products/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(product)
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          showAlert('success', '상품이 수정되었습니다.');
+          closeModal('editProductModal');
+          loadProducts();
+        } else {
+          showAlert('error', data.error || '상품 수정 실패');
+        }
+      } catch (error) {
+        showAlert('error', '상품 수정 실패: ' + error.message);
+      }
+    }
+
+    // 상품 삭제
+    async function deleteProduct(id) {
+      if (!confirm('정말 이 상품을 삭제하시겠습니까?')) return;
+
+      try {
+        const response = await fetch(`${API_BASE}/products/${id}`, { method: 'DELETE' });
+        const data = await response.json();
+
+        if (data.success) {
+          showAlert('success', '상품이 삭제되었습니다.');
+          loadProducts();
+          loadStats();
+        } else {
+          showAlert('error', data.error || '상품 삭제 실패');
+        }
+      } catch (error) {
+        showAlert('error', '상품 삭제 실패: ' + error.message);
+      }
+    }
+
+    // 상품 활성화/비활성화
+    async function toggleProduct(id) {
+      try {
+        const response = await fetch(`${API_BASE}/products/${id}/toggle`, { method: 'PATCH' });
+        const data = await response.json();
+
+        if (data.success) {
+          showAlert('success', data.message);
+          loadProducts();
+          loadStats();
+        } else {
+          showAlert('error', data.error || '토글 실패');
+        }
+      } catch (error) {
+        showAlert('error', '토글 실패: ' + error.message);
+      }
+    }
+
+    // 상품 테스트
+    async function testProduct(id) {
+      try {
+        showAlert('info', '상품을 테스트하는 중... (30초 이상 소요될 수 있습니다)');
+        const response = await fetch(`${API_BASE}/products/${id}/test`, { method: 'POST' });
+        const data = await response.json();
+
+        if (data.success) {
+          const result = data.data;
+          if (result.isFraudulent) {
+            showAlert('error', `⚠️ 이상 감지! 실제 판매자: ${result.actualSeller}`);
+          } else {
+            showAlert('success', `✅ 정상! 판매자: ${result.actualSeller}`);
+          }
+          loadResults();
+        } else {
+          showAlert('error', data.error || '테스트 실패');
+        }
+      } catch (error) {
+        showAlert('error', '테스트 실패: ' + error.message);
+      }
+    }
+
+    // 설정 모달 열기
+    async function openSettingsModal() {
+      try {
+        const response = await fetch(`${API_BASE}/config`);
+        const data = await response.json();
+
+        if (data.success) {
+          const config = data.data;
+          document.getElementById('slackChannel').value = config.slackChannel || '';
+          document.getElementById('intervalMin').value = config.checkIntervalMinutes?.min || 5;
+          document.getElementById('intervalMax').value = config.checkIntervalMinutes?.max || 10;
+          document.getElementById('intervalVariance').value = config.checkIntervalVarianceSeconds || 30;
+        }
+        openModal('settingsModal');
+      } catch (error) {
+        showAlert('error', '설정 로드 실패');
+      }
+    }
+
+    // 설정 저장
+    async function saveSettings(e) {
+      e.preventDefault();
+
+      const config = {
+        slackWebhookUrl: document.getElementById('slackWebhookUrl').value || undefined,
+        slackChannel: document.getElementById('slackChannel').value,
+        checkIntervalMinutes: {
+          min: parseInt(document.getElementById('intervalMin').value) || 5,
+          max: parseInt(document.getElementById('intervalMax').value) || 10
+        },
+        checkIntervalVarianceSeconds: parseInt(document.getElementById('intervalVariance').value) || 30
+      };
+
+      // 빈 값은 제외
+      if (!config.slackWebhookUrl) delete config.slackWebhookUrl;
+
+      try {
+        const response = await fetch(`${API_BASE}/config`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(config)
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          showAlert('success', '설정이 저장되었습니다.');
+          closeModal('settingsModal');
+        } else {
+          showAlert('error', data.error || '설정 저장 실패');
+        }
+      } catch (error) {
+        showAlert('error', '설정 저장 실패: ' + error.message);
+      }
+    }
+
+    // 슬랙 테스트
+    async function testSlack() {
+      try {
+        showAlert('info', '슬랙 테스트 메시지를 전송하는 중...');
+        const response = await fetch(`${API_BASE}/slack/test`, { method: 'POST' });
+        const data = await response.json();
+
+        if (data.success) {
+          showAlert('success', '슬랙 테스트 메시지가 전송되었습니다.');
+        } else {
+          showAlert('error', data.message || '슬랙 테스트 실패');
+        }
+      } catch (error) {
+        showAlert('error', '슬랙 테스트 실패: ' + error.message);
+      }
+    }
+
+    // 탭 전환
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+      document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
+      document.getElementById(`tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`).classList.add('active');
+
+      // 탭 전환 시 데이터 새로고침
+      if (tabName === 'products') loadProducts();
+      else if (tabName === 'results') loadResults();
+      else if (tabName === 'alerts') loadAlerts();
+    }
+
+    // 모달 열기
+    function openModal(modalId) {
+      document.getElementById(modalId).classList.add('active');
+    }
+
+    // 모달 닫기
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('active');
+    }
+
+    function openAddProductModal() {
+      openModal('addProductModal');
+    }
+
+    // 알림 표시
+    function showAlert(type, message) {
+      const container = document.getElementById('alertContainer');
+      const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-error' : 'alert-info';
+
+      container.innerHTML = `<div class="alert ${alertClass}">${escapeHtml(message)}</div>`;
+
+      setTimeout(() => {
+        container.innerHTML = '';
+      }, 5000);
+    }
+
+    // HTML 이스케이프
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // 모달 외부 클릭 시 닫기
+    document.querySelectorAll('.modal').forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.classList.remove('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
