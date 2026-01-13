@@ -1,11 +1,42 @@
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import { Browser, Page } from 'puppeteer';
+import { Browser, Page } from 'puppeteer-core';
 import { CrawlResult } from '../types';
 import db from '../database';
+import { execSync } from 'child_process';
 
 // Stealth 플러그인 적용 (봇 탐지 우회)
 puppeteer.use(StealthPlugin());
+
+// 시스템에서 Chrome/Chromium 경로 찾기
+function findChromePath(): string {
+  const paths = [
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
+  ];
+
+  for (const p of paths) {
+    try {
+      const fs = require('fs');
+      if (fs.existsSync(p)) {
+        return p;
+      }
+    } catch {}
+  }
+
+  // which 명령어로 찾기
+  try {
+    const result = execSync('which chromium-browser || which chromium || which google-chrome 2>/dev/null', { encoding: 'utf8' });
+    return result.trim();
+  } catch {}
+
+  return '/usr/bin/chromium-browser';
+}
 
 class CoupangCrawler {
   private browser: Browser | null = null;
@@ -15,9 +46,12 @@ class CoupangCrawler {
     if (this.isInitialized) return;
 
     const config = db.getConfig();
+    const chromePath = findChromePath();
+    console.log(`[Crawler] Chrome 경로: ${chromePath}`);
 
     this.browser = await puppeteer.launch({
       headless: config.headless ? 'new' : false,
+      executablePath: chromePath,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
