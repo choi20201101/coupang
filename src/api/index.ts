@@ -3,6 +3,7 @@ import { ApiResponse } from '../types';
 import db from '../database';
 import scheduler from '../scheduler';
 import slackService from '../services/slack';
+import crawler from '../crawler';
 
 const router: Router = express.Router();
 
@@ -401,6 +402,67 @@ router.post('/slack/test', async (req: Request, res: Response) => {
     const response: ApiResponse = {
       success: false,
       error: error instanceof Error ? error.message : '테스트 메시지 전송 실패'
+    };
+    res.status(500).json(response);
+  }
+});
+
+// ================== 브라우저 관리 API ==================
+
+// 브라우저 상태 조회
+router.get('/browser/status', (req: Request, res: Response) => {
+  try {
+    const isReady = crawler.isReady();
+    const response: ApiResponse = {
+      success: true,
+      data: {
+        isReady,
+        status: isReady ? '실행 중' : '중지됨'
+      }
+    };
+    res.json(response);
+  } catch (error) {
+    const response: ApiResponse = {
+      success: false,
+      error: error instanceof Error ? error.message : '브라우저 상태 조회 실패'
+    };
+    res.status(500).json(response);
+  }
+});
+
+// 브라우저 재시작 (봇 차단 시 사용)
+router.post('/browser/restart', async (req: Request, res: Response) => {
+  try {
+    console.log('[API] 브라우저 재시작 요청');
+    await crawler.restart();
+    const response: ApiResponse = {
+      success: true,
+      message: '브라우저가 재시작되었습니다. (새 User-Agent 적용)'
+    };
+    res.json(response);
+  } catch (error) {
+    const response: ApiResponse = {
+      success: false,
+      error: error instanceof Error ? error.message : '브라우저 재시작 실패'
+    };
+    res.status(500).json(response);
+  }
+});
+
+// 브라우저 프로필 초기화 (쿠키/캐시 삭제)
+router.post('/browser/clear-profile', async (req: Request, res: Response) => {
+  try {
+    console.log('[API] 프로필 초기화 요청');
+    await crawler.clearProfile();
+    const response: ApiResponse = {
+      success: true,
+      message: '브라우저 프로필이 초기화되었습니다. (쿠키/캐시 삭제)'
+    };
+    res.json(response);
+  } catch (error) {
+    const response: ApiResponse = {
+      success: false,
+      error: error instanceof Error ? error.message : '프로필 초기화 실패'
     };
     res.status(500).json(response);
   }
